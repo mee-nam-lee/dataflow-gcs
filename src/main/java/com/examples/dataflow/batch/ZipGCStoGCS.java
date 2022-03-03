@@ -15,7 +15,6 @@
 package com.examples.dataflow.batch;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 
@@ -25,37 +24,21 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.beam.examples.common.WriteOneFilePerWindow;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.io.TextIO;
-import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.options.StreamingOptions;
 import org.apache.beam.sdk.options.Validation.Required;
 import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.sdk.transforms.DoFn.ProcessContext;
-import org.apache.beam.sdk.transforms.DoFn.ProcessElement;
+
 import org.apache.beam.sdk.transforms.GroupIntoBatches;
-import org.apache.beam.sdk.transforms.MapElements;
+
 import org.apache.beam.sdk.transforms.ParDo;
-import org.apache.beam.sdk.transforms.SimpleFunction;
-import org.apache.beam.sdk.transforms.join.CoGbkResult;
-import org.apache.beam.sdk.transforms.windowing.FixedWindows;
-import org.apache.beam.sdk.transforms.windowing.Window;
 import org.apache.beam.sdk.values.KV;
-import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.sdk.values.TypeDescriptors;
-import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.beam.sdk.extensions.gcp.options.GcpOptions;
@@ -67,7 +50,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 public class ZipGCStoGCS {
@@ -103,7 +85,11 @@ public class ZipGCStoGCS {
   }
   
   static class Zipper extends DoFn<KV<String, Iterable<String>>, String> {
-	    private static final Logger LOG = LoggerFactory.getLogger(Zipper.class);
+	    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 7825366625552177409L;
+		private static final Logger LOG = LoggerFactory.getLogger(Zipper.class);
 	    private static Storage storage;
 	    private String input_bucket;
 	    private String output_bucket;
@@ -146,16 +132,7 @@ public class ZipGCStoGCS {
 							  zipOut.write(blob.getContent());							  
 						  }
 					}
-					
-					
-	//				ZipEntry zipEntry = new ZipEntry(fileToZip.getName());
-	//				zipOut.putNextEntry(zipEntry);
-					
-					
-	/*
-	 * byte[] bytes = new byte[1024]; int length; while((length = fis.read(bytes))
-	 * >= 0) { zipOut.write(bytes, 0, length); }
-	 */
+									
 					
 					
 					zipOut.close();
@@ -205,18 +182,13 @@ public class ZipGCStoGCS {
   }
 
 public static void main(String[] args) throws IOException {
-    // The maximum number of shards when writing output.
- //   int numShards = 1;
 
     GcsToGcsOptions options =
         PipelineOptionsFactory.fromArgs(args).withValidation().as(GcsToGcsOptions.class);
     
-  //  Storage storage = StorageOptions.newBuilder().setProjectId(options.getProject()).build().getService();
-
- //   options.setStreaming(true);
 
     Pipeline pipeline = Pipeline.create(options);
-	System.out.println("................" + options.getWindowSize());
+//	System.out.println("................" + options.getWindowSize());
 
     pipeline
           .apply("Test", Create.of(files(options.getInputBucket(), options.getProject())))
@@ -224,17 +196,9 @@ public static void main(String[] args) throws IOException {
           .apply("Group",GroupIntoBatches.ofSize(options.getWindowSize()))
           .apply("Zip", ParDo.of(new Zipper(options.getProject(), options.getInputBucket(), options.getOutputBucket(), options.getWindowSize())));
 
-    
- //         .apply("Test", TextIO.read().from("gs://mnlee-tsop/1.txt")); 
- //       .apply("Read PubSub Messages", PubsubIO.readStrings().fromTopic(options.getInputTopic()))
-        // 2) Group the messages into fixed-sized minute intervals.
- //       .apply(Window.into(FixedWindows.of(Duration.standardMinutes(options.getWindowSize()))))
-        // 3) Write one file to GCS for every window of messages.
- //       .apply("Write Files to GCS", new WriteOneFilePerWindow(options.getOutput(), numShards));
-
+  
     // Execute the pipeline and wait until it finishes running.
     pipeline.run().waitUntilFinish();
   //  pipeline.run();
   }
 }
-// [END pubsub_to_gcs]
